@@ -1,0 +1,14 @@
+{
+  "name": "armafix-site-tests",
+  "version": "1.0.0",
+  "description": "Automated end-to-end tests for the ArmaFix furniture assembly website",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
