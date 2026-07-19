@@ -1,0 +1,59 @@
+name: Playwright Tests — ArmaFix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run the FULL suite (including form/API tests) once a day
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Run E2E tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      # On push/PR: run everything EXCEPT the specs that write real data
+      # to the Google Sheet / Telegram (quote-form, api-form-submission).
+      # On the daily schedule (or manual trigger): run the full suite.
+      - name: Run Playwright tests (push/PR — excludes data-writing specs)
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: npx playwright test --grep-invert "quote-form|api-form-submission"
+        env:
+          BASE_URL: https://armafix.es/
+
+      - name: Run full Playwright suite (scheduled/manual — includes data-writing specs)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: npx playwright test
+        env:
+          BASE_URL: https://armafix.es/
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 30
