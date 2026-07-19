@@ -34,9 +34,16 @@ test.describe('Page load & basic structure', () => {
 
     for (let i = 0; i < count; i++) {
       const img = images.nth(i);
-      const naturalWidth = await img.evaluate((el) => el.naturalWidth);
-      const src = await img.getAttribute('src');
-      expect(naturalWidth, `Image failed to load: ${src}`).toBeGreaterThan(0);
+      // Most gallery images use loading="lazy" and only fetch once they
+      // enter the viewport. Scrolling into view first prevents a flaky
+      // false-negative where naturalWidth is still 0 simply because the
+      // browser hasn't triggered the lazy load yet (seen intermittently
+      // in CI, where viewport/timing differs from local runs).
+      await img.scrollIntoViewIfNeeded();
+      await expect(async () => {
+        const naturalWidth = await img.evaluate((el) => el.naturalWidth);
+        expect(naturalWidth).toBeGreaterThan(0);
+      }).toPass({ timeout: 5000 });
     }
   });
 
